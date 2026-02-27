@@ -32,6 +32,8 @@
  * V2.0 - set default termios baudrate to B115200
  *      - fix issue of automatically sending data upon opening tty
  *        for the first time on some systems
+ * V2.1 - set low_latency flag in tty activate routine, speed up of serial port data notification
+ *        to the application layer in low-version kernels
  */
 
 #define DEBUG
@@ -74,7 +76,7 @@
 #define DRIVER_DESC                                                  \
 	"USB serial driver for ch342/ch343/ch344/ch346/ch347/ch339/" \
 	"ch9101/ch9102/ch9103/ch9104/ch9143, etc."
-#define VERSION_DESC "V2.0 On 2025.09"
+#define VERSION_DESC "V2.1 On 2026.02"
 
 #define IOCTL_MAGIC 'W'
 
@@ -884,6 +886,10 @@ static int ch343_port_activate(struct tty_port *port,
 	usb_autopm_put_interface(ch343->control);
 	mutex_unlock(&ch343->mutex);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 12, 0))
+	port->low_latency = (port->flags & ASYNC_LOW_LATENCY) ? 1 : 0;
+#endif
+
 	return 0;
 
 error_submit_read_urbs:
@@ -1239,7 +1245,7 @@ static int ch343_get_serial_info(struct ch343 *ch343,
 		return -EINVAL;
 
 	memset(&tmp, 0, sizeof(tmp));
-	tmp.flags = ASYNC_LOW_LATENCY;
+	tmp.flags = ch343->port.flags;
 	tmp.xmit_fifo_size = ch343->writesize;
 	tmp.baud_base = le32_to_cpu(ch343->line.dwDTERate);
 	tmp.close_delay = ch343->port.close_delay / 10;
@@ -1281,6 +1287,11 @@ static int ch343_set_serial_info(struct ch343 *ch343,
 		ch343->port.close_delay = close_delay;
 		ch343->port.closing_wait = closing_wait;
 	}
+
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 12, 0))
+	ch343->port.low_latency =
+		(ch343->port.flags & ASYNC_LOW_LATENCY) ? 1 : 0;
+#endif
 
 	mutex_unlock(&ch343->port.mutex);
 	return retval;
@@ -1465,7 +1476,9 @@ static int ch343_get(struct ch343 *ch343, enum CHIPTYPE chiptype,
 			*fct = (unsigned char)(bval / 200);
 			*dvs = (unsigned char)((bval / 200) >> 8);
 		}
-	} else if (ch343->chiptype == CHIP_CH347TF && bval > 358400) {
+	} else if ((ch343->chiptype == CHIP_CH344Q ||
+		    ch343->chiptype == CHIP_CH347TF) &&
+		   bval > 358400) {
 		*fct = (unsigned char)(bval / 200);
 		*dvs = (unsigned char)((bval / 200) >> 8);
 	} else {
@@ -1598,8 +1611,13 @@ static void ch343_tty_set_termios(struct tty_struct *tty,
 	}
 
 	newline.dwDTERate = tty_get_baud_rate(tty);
-	if (newline.dwDTERate == 0)
-		newline.dwDTERate = 9600;
+	if (C_BAUD(tty) == B0) {
+		newline.dwDTERate = ch343->line.dwDTERate;
+		newctrl &= ~(CH343_CTO_D | CH343_CTO_R);
+	} else if (termios_old && (termios_old->c_cflag & CBAUD) == B0) {
+		newctrl |= CH343_CTO_D | CH343_CTO_R;
+	}
+
 	r = ch343_get(ch343, ch343->chiptype, newline.dwDTERate, &fct,
 		      &dvs);
 	if (r) {
@@ -1657,13 +1675,6 @@ static void ch343_tty_set_termios(struct tty_struct *tty,
 	}
 
 	ch343->clocal = ((termios->c_cflag & CLOCAL) != 0);
-
-	if (C_BAUD(tty) == B0) {
-		newline.dwDTERate = ch343->line.dwDTERate;
-		newctrl &= ~(CH343_CTO_D | CH343_CTO_R);
-	} else if (termios_old && (termios_old->c_cflag & CBAUD) == B0) {
-		newctrl |= CH343_CTO_D | CH343_CTO_R;
-	}
 
 	reg_value |= CH343_L_E_R | CH343_L_E_T;
 	reg_count |= CH343_L_R_CT | CH343_L_R_CL | CH343_L_R_T;
@@ -2163,7 +2174,7 @@ next_desc:
 	usb_driver_claim_interface(&ch343_driver, data_interface, ch343);
 	usb_set_intfdata(data_interface, ch343);
 
-	ch343->line.dwDTERate = 9600;
+	ch343->line.dwDTERate = 115200;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 7, 0))
 	tty_dev = tty_port_register_device(&ch343->port, ch343_tty_driver,
 					   minor, &control_interface->dev);
