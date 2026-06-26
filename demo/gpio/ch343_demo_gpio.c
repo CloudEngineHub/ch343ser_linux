@@ -1,8 +1,8 @@
 /*
- * ch342/ch343/ch344/ch346/ch347/ch9101/ch9102/ch9103/ch9104/ch9111/ch9114
+ * CH342/CH344/CH346/CH347/CH9101/CH9102/CH9103/CH9104/CH9105/CH9111/CH9114/CH9433
  * gpio application example
  *
- * Copyright (C) 2025 Nanjing Qinheng Microelectronics Co., Ltd.
+ * Copyright (C) 2026 Nanjing Qinheng Microelectronics Co., Ltd.
  * Web: http://wch.cn
  * Author: WCH <tech@wch.cn>
  *
@@ -13,10 +13,11 @@
  * Cross-compile with cross-gcc -I /path/to/cross-kernel/include
  *
  * V1.0 - initial version
- * V1.1 - add support of ch344, ch9103, ch9101
- * V1.2 - add support of ch9104
- * V1.3 - add support of ch347
- * V1.4 - add support of ch9114, ch346
+ * V1.1 - add support of CH344, CH9103, CH9101
+ * V1.2 - add support of CH9104
+ * V1.3 - add support of CH347
+ * V1.4 - add support of CH9114, CH346
+ * V1.5 - add support of CH9105, CH9433
  */
 
 #include <stdint.h>

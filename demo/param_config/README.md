@@ -1,204 +1,199 @@
-# **WCH USB 配置工具 CH34xSerCfg 使用说明**
+# **1. 概述**
 
+CH34xSerCfg配置软件用于WCH USB转串口系列芯片进行USB参数配置, 通过该工具可对芯片的厂商识别码VID 产品识别码PID 最大电流值 BCD版本号 厂商信息和产品信息字符串描述符等参数进行修改配置。
+程序支持配置型号: CH343P、CH342F、CH347T/F、CH344Q/L、CH348Q/L、CH9101U/H/R/Y、CH9102F、CH9103M、CH9104L、CH9105W、CH9344Q。
+（注: CH342F/CH9102F批号倒数第4位是字母的芯片,则内置EEPROM可支持此配置功能。）
 
+## **1.1 CH34xSerCfg 功能说明**
 
-## **一、概述**
+本节对 CH34xSerCfg 软件功能进行说明, 使用前需安装对应产品VCP驱动和应用库, 下载链接: 
 
-CH34xSerCfg配置软件用于WCH USB转串口系列芯片进行USB参数配置，通过该工具可对芯片的厂商识别码VID、产品识别码PID、最大电流值、BCD版本号、厂商信息和产品信息字符串描述符等参数进行修改配置。
+https://github.com/WCHSoftGroup/ch9344ser_linux（仅配置CH348Q/L和CH9344Q时需要）
 
-程序支持配置型号：CH342F、CH343P、CH344Q/L、CH346C、CH347T/F、CH348Q/L、CH9101U/H/R/Y、CH9102F、CH9103M、CH9104L、CH9344Q、CH9111L、CH9114F/L/W。
+https://github.com/WCHSoftGroup/ch343ser_linux（配置其他型号）
 
-（注：CH342F/CH9102F批号倒数第4位是字母的芯片,则内置EEPROM可支持此配置功能。）
+### 1.1.1 填写配置项
 
-## **二、CH34xSerCfg 功能说明**
+在CONFIG.INI文件中填写需要修改的配置项, **不需要修改的配置项可不用填写**。
 
-本节对 CH34xSerCfg 软件功能进行说明，使用前需安装对应产品VCP驱动和应用库，下载链接：
-
-[GitHub - WCHSoftGroup/ch343ser_linux: USB driver for USB to serial chip ch342, ch343, ch344, ch9101, ch9102, ch9103, etc](https://github.com/WCHSoftGroup/ch343ser_linux)
-
-[GitHub - WCHSoftGroup/ch9344ser_linux](https://github.com/WCHSoftGroup/ch9344ser_linux)
-
-###  1、填写配置项
-
-在CONFIG.INI文件中填写需要修改的配置项，**不需要修改的配置项可不用填写**。
-
-| **配置项**                      | **说明**                           | 可选值/注意事项                                              |
+| **配置项**                      | **说明**                           | **可选值/注意事项**                                          |
 | ------------------------------- | :--------------------------------- | :----------------------------------------------------------- |
-| **VendorID**                    | 厂商识别码                         | 使用合法ID                                                   |
-| **ProductID**                   | 产品识别码                         | 使用合法ID                                                   |
-| **MaxPower(HEX)**               | 最大电源电流值                     | 填十六进制                                                   |
-| **PowerMode**                   | USB供电方式                        | Self-Powered或Bus-Powered                                    |
-| **Wakeup_Enable**               | 睡眠唤醒功能                       | 1：开启 0：关闭                                              |
-| **CDC_CTSRTS_FlowControl**      | CDC模式下是否启用硬件流控          | 1：开启 0：关闭                                              |
-| **Pin_EEPROM_Def_Enable**       | 芯片引脚是否启用EEPROM的默认配     | 支持 CH9102F 和 CH9101U/H/R/Y<br>1：开启 0：关闭             |
-| **TNOW_DTR_SoftSet**            | TNOW/DTR引脚功能配置               | 支持 CH344、CH348 和 CH9104<br>1：开启 0：关闭               |
-| **UARTx_TNOW_DTR_SETBIT**       | UARTx TNOW/DTR引脚功能配置         | 支持 CH344、CH348 和 CH9104；<br>需开启TNOW_DTR_SoftSet，填入8位16进制数值；<br>bit0~bit7对应UART0~UART7<br>1：TNOW 0：DTR |
-| **CH9101RY_MODEM_Enable**       | CH9101R/Y芯片MODEM引脚功能配       | 支持CH9101RY<br>1：开启 0：关闭                              |
-| **CH9101RY_DSR_MUX_TXS**        | CH9101RY  DSR#脚功能               | 支持CH9101RY<br>0:TXS功能(默认)  1: DSR#功能                 |
-| **CH9101RY_RI_MUX_RXS**         | CH9101RY RI#脚功能                 | 支持CH9101RY<br>0:RXS功能(默认)  1: RI#功能                  |
-| **CH9101RY_DCD_MUX_TNOW**       | CH9101RY  DCD#脚功能               | 支持CH9101RY<br>0:TNOW功能(默认)  1: DCD#功能                |
-| **CH9101RY_DTR_MUX_SUSPEND**    | CH9101RY DTR#脚功能                | 支持CH9101RY<br>0:SLEEP功能(默认)  1: DTR#功能               |
-| **Serial_String_enable**        | 开启USB设备序列号字符串使能        | 1：开启 0：关闭                                              |
-| **Product_String_enable**       | 开启USB产品信息字符串使能          | 1：开启 0：关闭                                              |
-| **Manufacturer_String_enable**  | 开启USB厂商信息字符串使能          | 1：开启 0：关闭                                              |
-| **Serial_String**               | USB设备序列号字符串                | 长度范围0~24字节                                             |
-| **Product_String**              | USB产品信息字符串                  | 长度范围0~40字节                                             |
-| **Manufacturer_String**         | USB厂商信息字符串                  | 长度范围0~40字节                                             |
-| **Sleep_Mode_enable**           | 芯片USB睡眠功能                    | 支持CH348Q/L、CH344Q、CH9114L/W/F、CH9111<br>1：开启 0：关闭 |
-| **TXD_state**                   | TXD引脚切换成高阻态功能            | 支持CH342F、CH9102F<br>1：开启 0：关闭                       |
-| **CH346_Extend_Config_Enabled** | CH346扩展配置使能                  | 1：开启 0：关闭                                              |
-| **CH346_Extend_Config_Freq**    | CH346芯片工作主频                  | 填主频数值(十进制)<br>如120000000                            |
-| **CH346_Extend_Config_Mode**    | CH346芯片工作模式                  | 有效值为0/1/2，分别表示工作模式0/1/2                         |
-| **CH346_Extend_Config_PLen**    | CH346通信包大小                    | 被动并口或被动SPI接口通信包大小，必须是512的倍数，默认为512字节 |
-| **CH346_Extend_Config_M0_IO0**  | CH346工作模式0的IO0(PIN12)功能配置 | 0x00：RXD0功能；<br/>0x01：TX_S功能；<br/>0x02：ACT功能；<br/>0x03：GPIO6功能 |
-| **CH346_Extend_Config_M0_IO1**  | CH346工作模式0的IO1(PIN13)功能配置 | 0x00：TXD0功能；<br/>0x01：RX_S功能；<br/>0x02：SUSP功能；<br/>0x03：GPIO7功能 |
-| **CH346_Extend_Config_M1_IO0**  | CH346工作模式1的IO0(PIN15)功能配置 | 0x00：DCD0功能；<br/>0x01：TX_S功能；<br/>0x02：无效；<br/>0x03：GPIO4功能 |
-| **CH346_Extend_Config_M1_IO1**  | CH346工作模式1的IO0(PIN16)功能配置 | 0x00：DTR0功能；<br/>0x01：RX_S功能；<br/>0x02：无效；<br/>0x03：GPIO2功能 |
-| **CH346_Extend_Config_M2_IO0**  | CH346工作模式2的IO0(PIN13)功能配置 | 0x00：DCD1功能；<br/>0x01：SUSP功能；<br/>0x02：无效；<br/>0x03：GPIO7功能 |
-| **CH346_Extend_Config_M2_IO1**  | CH346工作模式2的IO1(PIN15)功能配置 | 0x00：DCD0功能；<br/>0x01：TX_S功能；<br/>0x02：无效；<br/>0x03：GPIO4功能 |
-| **CH346_Extend_Config_M2_IO2**  | CH346工作模式2的IO2(PIN16)功能配置 | 0x00：DTR0功能；<br/>0x01：RX_S功能；<br/>0x02：无效；<br/>0x03：GPIO2功能 |
-| **CH346_Extend_Config_M2_IO3**  | CH346工作模式2的IO3(PIN17)功能配置 | 0x00：DSR0功能；<br/>0x01：ACT功能；<br/>0x02：无效；<br/>0x03：GPIO3功能 |
+| **VendorID**                    | 厂商识别码 (VID)                     | 需使用合法ID (修改ID后, 原VCP驱动程序将无法适用该芯片)      |
+| **ProductID**                   | 产品识别码 (PID)                     | 需使用合法ID (修改ID后, 原VCP驱动程序将无法适用该芯片)                        |
+| **Serial_String_Enable**       | 开启USB设备序列号字符串使能          | `y`: 开启, `n`: 关闭                                         |
+| **Product_String_Enable**      | 开启USB产品信息字符串使能            | `y`: 开启, `n`: 关闭                                         |
+| **Manufacturer_String_Enable** | 开启USB厂商信息字符串使能            | `y`: 开启, `n`: 关闭                                         |
+| **Serial_String**         | USB设备序列号字符串                  | 长度范围0~24字节。示例值: `abcdef`                           |
+| **Product_String** | USB产品信息字符串                    | 长度范围0~40字节。示例值: `USB_to_Serial`                   |
+| **Manufacturer_String** | USB厂商信息字符串                    | 长度范围0~40字节。示例值: `www.wch.cn`                       |
+| **MaxPower(mA)**             | 最大电源电流值                       | 单位为毫安(mA), 示例值为`300`                                |
+| **PowerMode**        | USB供电方式                          | `Self-Powered` 或 `Bus-Powered`                              |
+| **Remote_Wakeup_Enable**      | 远程唤醒（睡眠唤醒）功能             | `y`: 开启, `n`: 关闭                                         |
+| **PIN_USE_EEPROM_Enable**     | 芯片引脚是否使用EEPROM的默认配置     | `y`: 开启, `n`: 关闭 (支持CH9102F和CH9101U/H/R/Y)        |
+| **CDC_CTSRTS_FlowControl_Enable** | CDC模式下是否启用硬件流控 (CTS/RTS) | `y`: 开启, `n`: 关闭                                         |
+| **TurnOff_SuspendMode_Enable**| 芯片USB睡眠功能                      | `y`: 开启, `n`: 关闭 (支持CH348Q/L CH344Q CH9114L/W/F CH9111) |
+| **DTR_MUX_TNOW_SoftSet_Enable**| TNOW/DTR引脚功能软件配置使能         | `y`: 开启, `n`: 关闭 (支持CH344 CH348 CH9104)          |
+| **UARTx_TNOW_DTR_SETBITS**    | UARTx TNOW/DTR引脚功能具体配置       | `bit0~bit7`对应`UART0~UART7`<br/> `1`: TNOW `0`: DTR<br/> (支持CH344 CH348 CH9104 需先设置`DTR_MUX_TNOW_SoftSet_Enable=y`, 填入8位16进制数值) |
+| **CH9101RY_MODEM_Enable**      | CH9101R/Y芯片MODEM引脚功能使能       | `y`: 开启, `n`: 关闭                        |
+| **CH9101RY_TXS_MUX_DSR_Enable**| CH9101R/Y芯片 TXS 与 DSR# 引脚复用使能 | `y`: DSR#功能, `n`: TXS功能(默认)           |
+| **CH9101RY_RXS_MUX_RI_Enable** | CH9101R/Y芯片 RXS 与 RI# 引脚复用使能  | `y`: RI#功能, `n`: RXS功能(默认)            |
+| **CH9101RY_TNOW_MUX_DCD_Enable**| CH9101R/Y芯片 TNOW 与 DCD# 引脚复用使能 | `y`: DCD#功能, `n`: TNOW功能(默认)          |
+| **CH9101RY_SLEEP_MUX_DTR_Enable**| CH9101R/Y芯片 SLEEP 与 DTR# 引脚复用使能 | `y`: DTR#功能, `n`: SLEEP功能(默认)         |
+| **CH346_Config_Enable**        | CH346扩展配置使能                    | `y`: 开启, `n`: 关闭                                         |
+| **CH346_Config_Freq**           | CH346芯片工作主频                    | 填主频数值(十进制), 例如 `120000000`                         |
+| **CH346_Config_Mode**           | CH346芯片工作模式                    | 有效值为`0`/`1`/`2`, 分别表示工作模式0/1/2                   |
+| **CH346_Config_PLen**           | CH346通信包大小                      | 被动并口或被动SPI接口通信包大小, 必须是512的倍数, 默认为512字节 |
+| **CH346_Config_M0_IO0**         | CH346工作模式0的IO0(PIN12)功能配置   | `0x00`: RXD0功能 <br/>`0x01`: TX_S功能 <br/>`0x02`: ACT功能 <br/>`0x03`: GPIO6功能 |
+| **CH346_Config_M0_IO1**         | CH346工作模式0的IO1(PIN13)功能配置   | `0x00`: TXD0功能 <br/>`0x01`: RX_S功能 <br/>`0x02`: SUSP功能 <br/>`0x03`: GPIO7功能 |
+| **CH346_Config_M1_IO0**         | CH346工作模式1的IO0(PIN15)功能配置   | `0x00`: DCD0功能 <br/>`0x01`: TX_S功能 <br/>`0x02`: 无效 <br/>`0x03`: GPIO4功能 |
+| **CH346_Config_M1_IO1**         | CH346工作模式1的IO1(PIN16)功能配置   | `0x00`: DTR0功能 <br/>`0x01`: RX_S功能 <br/>`0x02`: 无效 <br/>`0x03`: GPIO2功能 |
+| **CH346_Config_M2_IO0**         | CH346工作模式2的IO0(PIN13)功能配置   | `0x00`: DCD1功能 <br/>`0x01`: SUSP功能 <br/>`0x02`: 无效 <br/>`0x03`: GPIO7功能 |
+| **CH346_Config_M2_IO1**         | CH346工作模式2的IO1(PIN15)功能配置   | `0x00`: DCD0功能 <br/>`0x01`: TX_S功能 <br/>`0x02`: 无效 <br/>`0x03`: GPIO4功能 |
+| **CH346_Config_M2_IO2**         | CH346工作模式2的IO2(PIN16)功能配置   | `0x00`: DTR0功能 <br/>`0x01`: RX_S功能 <br/>`0x02`: 无效 <br/>`0x03`: GPIO2功能 |
+| **CH346_Config_M2_IO3**         | CH346工作模式2的IO3(PIN17)功能配置   | `0x00`: DSR0功能 <br/>`0x01`: ACT功能 <br/>`0x02`: 无效 <br/>`0x03`: GPIO3功能 |
 
-**注意事项**：
 
-- 修改设备的 VID 或 PID 后，原 VCP 驱动将不再适用于该硬件，设备此时只能使用系统自带 CDC 驱动（CH340/CH348 系列不支持系统 CDC 驱动），若需要使用 VCP 驱动，需在驱动static const struct usb_device_id xxx_ids[] 结构体数组中，增加对应的ID匹配项，重新编译、加载驱动。
+**注意事项**: 
+
+- 修改设备的 VID 或 PID 后, 原 VCP 驱动将不再适用于该硬件, 设备此时只能使用系统自带 CDC 驱动（CH340/CH348/CH9344 系列不支持系统 CDC 驱动）, 若需要使用 VCP 驱动, 需在驱动static const struct usb_device_id xxx_ids[] 结构体数组中, 增加对应的ID匹配项, 重新编译加载驱动。
 
 - 不要修改CONFIG.INI文件中除配置项外的其他内容或格式。
 
-### 2、编译和执行示例
+### 1.1.2 编译和执行示例
 
-- 从ch343ser_linux和ch9344ser_linux资料的lib文件夹中获取libch34xcfg.so(.a)、libch343.so(.a)和libch9344.so(.a)库文件，将库文件放置到系统标准库路径下或者param_config目录，将lib文件夹下所有头文件也拷贝至param_config目录；
-- 进入param_config目录下，执行命令：gcc ch343_demo_param_config.c -lch34xcfg -lch343 -lch9344 -o CH34xSerCfg 
-- 命令格式1：./CH34xSerCfg  [串口设备路径]  CONFIG.INI
+- 从`ch343ser_linux`的`lib`文件夹中获取`libch343.so(.a)`库文件, 将库文件放置到系统标准库路径下或者param_config目录, 将lib文件夹下所有头文件也拷贝至param_config目录 
+- 进入param_config目录下, 执行命令: `gcc ch343_demo_param_config.c -lch343 -o CH34xSerCfg`（说明：拷贝静态库至param_config目录时）
+- 命令格式1: `./CH34xSerCfg  [串口设备路径]  CONFIG.INI`
+输入g: 获取当前配置
+输入s: 配置芯片的EEPROM
+输入d: 向EEPROM写入厂商默认配置
+输入q: 退出程序
 
-​           输入g：获取当前配置
-
-​           输入s：配置芯片
-
-​	       输入r：向EEPROM写入厂商默认配置
-
-​           输入q：退出程序
-
-### 3、使用示例
+### 1.1.3 使用示例
 
 执行程序
-
 sudo ./CH34xSerCfg /dev/ttyCH343USB0 CONFIG.INI
 
 配置文件
 
 ```shell
-[Public]
-VendorID=1a86
+VendorID=
 ProductID=
-MaxPower(HEX)=80
+
+Serial_String_Enable=y
+Product_String_Enable=y
+Manufacturer_String_Enable=y
+Serial_String=abcdef
+Product_String=USB_xxx_Serial
+Manufacturer_String=www.wch.cn
+
+MaxPower(mA)=300
 PowerMode=Bus-Powered
-Wakeup_Enable=0
-CDC_CTSRTS_FlowControl=0
-Pin_EEPROM_Def_Enable=0
-TNOW_DTR_SoftSet=0
-UARTx_TNOW_DTR_SETBIT=00
-CH9101RY_MODEM_Enable=0
-CH9101RY_DSR_MUX_TXS=0
-CH9101RY_RI_MUX_RXS=0
-CH9101RY_DCD_MUX_TNOW=0
-CH9101RY_DTR_MUX_SUSPEND=0
-Serial_String_enable=1
-Product_String_enable=1
-Manufacturer_String_enable=1
-Serial_String=abcde
-Product_String=WCH
-Manufacturer_String=usb to uart
-Sleep_Mode_enable=1
-TXD_state=0
-CH346_Extend_Config_Enable=0
-CH346_Extend_Config_Freq=120000000
-CH346_Extend_Config_Mode=1
-CH346_Extend_Config_PLen=1024
-CH346_Extend_Config_M0_IO0=0
-CH346_Extend_Config_M0_IO1=0
-CH346_Extend_Config_M1_IO0=0
-CH346_Extend_Config_M1_IO1=0
-CH346_Extend_Config_M2_IO0=0
-CH346_Extend_Config_M2_IO1=0
-CH346_Extend_Config_M2_IO2=0
-CH346_Extend_Config_M2_IO3=0
+Remote_Wakeup_Enable=no
+
+PIN_USE_EEPROM_Enable=no
+CDC_CTSRTS_FlowControl_Enable=no
+TurnOff_SuspendMode_Enable=no
+
+# CH344/CH348/CH9114
+DTR_MUX_TNOW_SoftSet_Enable=y
+UARTx_TNOW_DTR_SETBITS=00
+# CH9101RY
+CH9101RY_MODEM_Enable=y
+CH9101RY_TXS_MUX_DSR_Enable=y
+CH9101RY_RXS_MUX_RI_Enable=y
+CH9101RY_TNOW_MUX_DCD_Enable=y
+CH9101RY_SLEEP_MUX_DTR_Enable=y
+# CH346
+CH346_Config_Enable=n
+CH346_Config_Freq=
+CH346_Config_Mode=
+CH346_Config_PLen=
+CH346_Config_M0_IO0=
+CH346_Config_M0_IO1=
+CH346_Config_M1_IO0=
+CH346_Config_M1_IO1=
+CH346_Config_M2_IO0=
+CH346_Config_M2_IO1=
+CH346_Config_M2_IO2=
+CH346_Config_M2_IO3=
 ```
 
-配置示例：
-
+查看当前eeprom配置
 ```shell
-press g to get usb config, s to set usb config, r to set default config, q to quit this app.
-s
-Update [ Serial_String_enable       ]----------> [ON ]
-Update [ Product_String_enable      ]----------> [ON ]
-Update [ Manufacturer_String_enable ]----------> [ON ]
-Update [ VendorID                   ]----------> [NULL]
-Update [ ProductID                  ]----------> [NULL]
-Update [ MaxPower(HEX)              ]----------> [c8]
-Update [ PowerMode                  ]----------> [Bus-Powered]
-Update [ Wakeup_Enable              ]----------> [OFF]
-Update [ TNOW_DTR_SoftSet           ]----------> [OFF]
-Update [ CDC_CTSRTS_FlowControl     ]----------> [OFF]
-Update [ CH9101RY_DSR_MUX_TXS       ]----------> [OFF]
-Update [ Manufacturer_String        ]----------> [wch.cn]
-Update [ Product_String             ]----------> [usb2.0 to multi]
-Update [ Serial_String              ]----------> [12345abc]
-Update [ Sleep_Mode_enable          ]----------> [ON ]
-```
-
-配置完成后输入’g’查看
-
-```shell
-press g to get usb config, s to set usb config, r to set default config, q to quit this app.
+press g to get usb config, s to set usb config, d to set default config, q to quit this app.
 g
-************************EEPROM************************
-     0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F  
-00:  53 23 E0 00 86 1A D9 55 00 00 64 80 00 00 00 00 
-10:  12 12 03 31 00 32 00 33 00 34 00 35 00 61 00 62 
-20:  00 63 00 00 00 00 00 00 20 20 03 75 00 73 00 62 
-30:  00 32 00 2E 00 30 00 20 00 74 00 6F 00 20 00 6D 
-40:  00 75 00 6C 00 74 00 69 00 00 00 00 00 00 00 00 
-50:  0E 0E 03 77 00 63 00 68 00 2E 00 63 00 6E 00 00 
-60:  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
-70:  00 00 00 00 00 00 00 00 FF 00 00 00 00 00 00 00 
-80:  00 00 00 00 00 00 00 00 00 00 
-******************************************************
+current eeprom buffer:
+          00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+00000000: 53 23 60 00 86 1A E8 55  41 01 64 80 FF 00 00 00  |S#`....UA.d.....|
+00000010: 16 16 03 42 00 43 00 34  00 41 00 36 00 30 00 43  |...B.C.4.A.6.0.C|
+00000020: 00 46 00 41 00 42 00 00  20 20 03 55 00 53 00 42  |.F.A.B..  .U.S.B|
+00000030: 00 20 00 51 00 75 00 61  00 64 00 5F 00 53 00 65  |. .Q.u.a.d._.S.e|
+00000040: 00 72 00 69 00 61 00 6C  00 00 00 00 00 00 00 00  |.r.i.a.l........|
+00000050: 0E 0E 03 77 00 63 00 68  00 2E 00 63 00 6E 00 00  |...w.c.h...c.n..|
+00000060: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00000070: 00 00 00 00 00 00 00 00  00                       |.........|
+```
 
-************************CHIP-CH348L************************
-idVendor: 1a86
-idProduct: 55d9
-Max Power: 200mA
-bcdUSB: 0000
-Powermode: [Bus-Powered]
-Remote Wakeup: [Disable]
-Hardware Flow Control in CDC mode: [Disable]
-TNOW/DTR pin function software configuration: [Disable]
-bSerialNumber: 12345abc
-bProductString: usb2.0 to multi
-bManufacturerDescriptor: wch.cn
-Sleep mode: [Enable]
-************************************************************
+配置示例: 
+```shell
+press g to get usb config, s to set usb config, d to set default config, q to quit this app.
+s
+current eeprom buffer:
+          00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+00000000: 53 23 60 00 86 1A E8 55  41 01 64 80 FF 00 00 00  |S#`....UA.d.....|
+00000010: 16 16 03 42 00 43 00 34  00 41 00 36 00 30 00 43  |...B.C.4.A.6.0.C|
+00000020: 00 46 00 41 00 42 00 00  20 20 03 55 00 53 00 42  |.F.A.B..  .U.S.B|
+00000030: 00 20 00 51 00 75 00 61  00 64 00 5F 00 53 00 65  |. .Q.u.a.d._.S.e|
+00000040: 00 72 00 69 00 61 00 6C  00 00 00 00 00 00 00 00  |.r.i.a.l........|
+00000050: 0E 0E 03 77 00 63 00 68  00 2E 00 63 00 6E 00 00  |...w.c.h...c.n..|
+00000060: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00000070: 00 00 00 00 00 00 00 00  00                       |.........|
+new eeprom buffer:
+          00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+00000000: 53 23 E4 00 86 1A E8 55  41 01 FA 80 00 00 00 00  |S#.....UA.......|
+00000010: 0E 0E 03 61 00 62 00 63  00 64 00 65 00 66 00 00  |...a.b.c.d.e.f..|
+00000020: 00 00 00 00 00 00 00 00  1E 1E 03 55 00 53 00 42  |...........U.S.B|
+00000030: 00 5F 00 78 00 78 00 78  00 5F 00 53 00 65 00 72  |._.x.x.x._.S.e.r|
+00000040: 00 69 00 61 00 6C 00 00  00 00 00 00 00 00 00 00  |.i.a.l..........|
+00000050: 16 16 03 77 00 77 00 77  00 2E 00 77 00 63 00 68  |...w.w.w...w.c.h|
+00000060: 00 2E 00 63 00 6E 00 00  00 00 00 00 00 00 00 00  |...c.n..........|
+00000070: 00 00 00 00 00 00 00 00  00                       |.........|
 ```
 
 向EEPROM写入厂商默认配置
+```shell
+press g to get usb config, s to set usb config, d to set default config, q to quit this app.
+d
+new eeprom buffer:
+          00 01 02 03 04 05 06 07  08 09 0A 0B 0C 0D 0E 0F
+00000000: 53 23 60 00 86 1A E8 55  41 01 42 80 00 00 00 00  |S#`....UA.B.....|
+00000010: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00000020: 00 00 00 00 00 00 00 00  20 20 03 55 00 53 00 42  |........  .U.S.B|
+00000030: 00 20 00 51 00 75 00 61  00 64 00 5F 00 53 00 65  |. .Q.u.a.d._.S.e|
+00000040: 00 72 00 69 00 61 00 6C  00 00 00 00 00 00 00 00  |.r.i.a.l........|
+00000050: 0E 0E 03 77 00 63 00 68  00 2E 00 63 00 6E 00 00  |...w.c.h...c.n..|
+00000060: 00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00000070: 00 00 00 00 00 00 00 00  00                       |.........|
+```
+
+配置完成后, 芯片需复位或重新上电, 然后可在对应的USB设备目录查看配置信息
 
 ```shell
-press g to get usb config, s to set usb config, r to set default config, q to quit this app.
-r
-Writing the default configuration...
-************************EEPROM************************
-     0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F  
-00:  53 23 60 00 86 1A D9 55 00 00 32 80 00 00 00 00 
-10:  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
-20:  00 00 00 00 00 00 00 00 20 20 03 55 00 53 00 42 
-30:  00 32 00 2E 00 30 00 20 00 54 00 6F 00 20 00 4D 
-40:  00 75 00 6C 00 74 00 69 00 00 00 00 00 00 00 00 
-50:  0E 0E 03 77 00 63 00 68 00 2E 00 63 00 6E 00 00 
-60:  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
-70:  00 00 00 00 00 00 00 00 FF 00 00 00 00 00 00 00 
-80:  00 00 00 00 00 00 00 00 00 00 
-******************************************************
-The default configuration is successfully written!
+book@100ask:/sys/bus/usb/devices/3-2$ ls
+3-2:1.0  3-2:1.5            bcdDevice            bmAttributes        busnum         devpath    ltm_capable   product    speed      version
+3-2:1.1  3-2:1.6            bConfigurationValue  bMaxPacketSize0     configuration  driver     manufacturer  quirks     subsystem
+3-2:1.2  3-2:1.7            bDeviceClass         bMaxPower           descriptors    ep_00      maxchild      removable  tx_lanes
+3-2:1.3  authorized         bDeviceProtocol      bNumConfigurations  dev            idProduct  port          remove     uevent
+3-2:1.4  avoid_reset_quirk  bDeviceSubClass      bNumInterfaces      devnum         idVendor   power         rx_lanes   urbnum
+book@100ask:/sys/bus/usb/devices/3-2$
+book@100ask:/sys/bus/usb/devices/3-2$
+book@100ask:/sys/bus/usb/devices/3-2$ cat manufacturer
+wch.cn
+book@100ask:/sys/bus/usb/devices/3-2$ cat idProduct
+55e8
+book@100ask:/sys/bus/usb/devices/3-2$ cat product
+USB Quad_Serial
+
 ```
 
