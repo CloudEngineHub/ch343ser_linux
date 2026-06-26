@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0+
 /*
- * USB serial driver for USB to UART(s) chip ch342/ch343/ch344/ch346/ch347/
- * ch339/ch9101/ch9102/ch9103/ch9104/ch9143/ch9111/ch9114, etc.
+ * USB serial driver for USB to UART(s) chip CH342/CH343/CH344/CH346/CH347/
+ * CH339/CH9101/CH9102/CH9103/CH9104/CH9105/CH9143/CH9111/CH9114, etc.
  *
  * Copyright (C) 2025 Nanjing Qinheng Microelectronics Co., Ltd.
  * Web:		http://wch.cn
@@ -16,24 +16,25 @@
  * Kernel version beyond 3.2.x
  * Update Log:
  * V1.0 - initial version
- * V1.1 - add support of chip ch344, ch9101 and ch9103
- * V1.2 - add gpio support of chip ch344
- * V1.3 - add support of chip ch347
- * V1.4 - add support of chip ch9104
+ * V1.1 - add support of chip CH344, CH9101 and CH9103
+ * V1.2 - add gpio support of chip CH344
+ * V1.3 - add support of chip CH347
+ * V1.4 - add support of chip CH9104
  * V1.5 - add gpio character device
  *      - add support for kernel version beyond 5.14.x
- * V1.6 - add support for non-standard baud rates above 2Mbps of ch347 etc.
+ * V1.6 - add support for non-standard baud rates above 2Mbps of CH347 etc.
  *      - add support for kernel version beyond 6.3.x
  *      - fix bugs when usb device disconnect
  * V1.7 - add support for kernel version 3.3.x~3.4.x
- *      - add support of chip ch9143
+ *      - add support of chip CH9143
  * V1.8 - add support for kernel version beyond 6.5.x
- * V1.9 - add support of chip ch9111, ch9114 and ch346
+ * V1.9 - add support of chip CH9111, CH9114 and CH346
  * V2.0 - set default termios baudrate to B115200
  *      - fix issue of automatically sending data upon opening tty
  *        for the first time on some systems
  * V2.1 - set low_latency flag in tty activate routine, speed up of serial port data notification
  *        to the application layer in low-version kernels
+ * V2.2 - add support of chip CH9105 and CH9433
  */
 
 #define DEBUG
@@ -73,10 +74,10 @@
 #include "ch343.h"
 
 #define DRIVER_AUTHOR "WCH"
-#define DRIVER_DESC                                                  \
-	"USB serial driver for ch342/ch343/ch344/ch346/ch347/ch339/" \
-	"ch9101/ch9102/ch9103/ch9104/ch9143, etc."
-#define VERSION_DESC "V2.1 On 2026.02"
+#define DRIVER_DESC \
+	"USB serial driver for CH342/CH343/CH344/CH346/CH347/ \
+     CH339/CH9101/CH9102/CH9103/CH9104/CH9105/CH9143/CH9111/CH9114, etc."
+#define VERSION_DESC "V2.2 On 2026.04"
 
 #define IOCTL_MAGIC 'W'
 
@@ -445,6 +446,14 @@ static int ch343_configure(struct ch343 *ch343)
 		ch343->num_ports = 2;
 		ch343->chiptype = CHIP_CH346C_M2;
 		break;
+	case 0x55EF:
+		ch343->num_ports = 4;
+		ch343->chiptype = CHIP_CH9105W;
+		break;
+	case 0x5610:
+		ch343->num_ports = 1;
+		ch343->chiptype = CHIP_CH9433K;
+		break;
 	default:
 		break;
 	}
@@ -542,7 +551,9 @@ static void ch343_update_status(struct ch343 *ch343, unsigned char *data,
 		   ch343->chiptype == CHIP_CH9114F ||
 		   ch343->chiptype == CHIP_CH9114W ||
 		   ch343->chiptype == CHIP_CH9111L_M0 ||
-		   ch343->chiptype == CHIP_CH9111L_M1) {
+		   ch343->chiptype == CHIP_CH9111L_M1 ||
+		   ch343->chiptype == CHIP_CH9105W ||
+		   ch343->chiptype == CHIP_CH9433K) {
 		type = data[1];
 	}
 
@@ -1106,7 +1117,9 @@ static int ch343_tty_break_ctl(struct tty_struct *tty, int state)
 		    ch343->chiptype == CHIP_CH9114F ||
 		    ch343->chiptype == CHIP_CH9114W ||
 		    ch343->chiptype == CHIP_CH9111L_M0 ||
-		    ch343->chiptype == CHIP_CH9111L_M1) {
+		    ch343->chiptype == CHIP_CH9111L_M1 ||
+		    ch343->chiptype == CHIP_CH9105W ||
+		    ch343->chiptype == CHIP_CH9433K) {
 			regbuf[0] = ch343->iface;
 			regbuf[1] = 0x01;
 		} else {
@@ -1127,7 +1140,9 @@ static int ch343_tty_break_ctl(struct tty_struct *tty, int state)
 		    ch343->chiptype == CHIP_CH9114F ||
 		    ch343->chiptype == CHIP_CH9114W ||
 		    ch343->chiptype == CHIP_CH9111L_M0 ||
-		    ch343->chiptype == CHIP_CH9111L_M1) {
+		    ch343->chiptype == CHIP_CH9111L_M1 ||
+		    ch343->chiptype == CHIP_CH9105W ||
+		    ch343->chiptype == CHIP_CH9433K) {
 			regbuf[0] = ch343->iface;
 			regbuf[1] = 0x00;
 		} else {
@@ -1150,7 +1165,9 @@ static int ch343_tty_break_ctl(struct tty_struct *tty, int state)
 	    ch343->chiptype == CHIP_CH9114F ||
 	    ch343->chiptype == CHIP_CH9114W ||
 	    ch343->chiptype == CHIP_CH9111L_M0 ||
-	    ch343->chiptype == CHIP_CH9111L_M1) {
+	    ch343->chiptype == CHIP_CH9111L_M1 ||
+	    ch343->chiptype == CHIP_CH9105W ||
+	    ch343->chiptype == CHIP_CH9433K) {
 		retval = ch343_control_out(ch343, CMD_C4, reg_contents,
 					   0x00);
 	} else {
@@ -1477,7 +1494,9 @@ static int ch343_get(struct ch343 *ch343, enum CHIPTYPE chiptype,
 			*dvs = (unsigned char)((bval / 200) >> 8);
 		}
 	} else if ((ch343->chiptype == CHIP_CH344Q ||
-		    ch343->chiptype == CHIP_CH347TF) &&
+		    ch343->chiptype == CHIP_CH347TF ||
+		    ch343->chiptype == CHIP_CH9105W ||
+		    ch343->chiptype == CHIP_CH9433K) &&
 		   bval > 358400) {
 		*fct = (unsigned char)(bval / 200);
 		*dvs = (unsigned char)((bval / 200) >> 8);
@@ -1968,6 +1987,28 @@ static int ch343_probe(struct usb_interface *intf,
 	int rv = -ENOMEM;
 
 	quirks = (unsigned long)id->driver_info;
+
+	if (intf->altsetting->desc.bInterfaceClass ==
+	    USB_CLASS_VENDOR_SPEC) {
+		/* handle quirks deadly to normal probing*/
+		data_interface = usb_ifnum_to_if(
+			usb_dev, intf->altsetting->desc.bInterfaceNumber);
+		control_interface = data_interface;
+		if (data_interface->cur_altsetting->desc.bNumEndpoints < 3)
+			return -EINVAL;
+		epread = &data_interface->cur_altsetting->endpoint[0].desc;
+		epwrite =
+			&data_interface->cur_altsetting->endpoint[1].desc;
+		epctrl = &data_interface->cur_altsetting->endpoint[2].desc;
+
+		/* workaround for switched endpoints */
+		if (!usb_endpoint_dir_in(epread)) {
+			/* descriptors are swapped */
+			swap(epread, epwrite);
+		}
+		goto found_dev;
+	}
+
 	if ((!buffer) || (buflen == 0)) {
 		dev_err(&intf->dev, "Weird descriptor references\n");
 		return -EINVAL;
@@ -2039,6 +2080,7 @@ next_desc:
 	if (!usb_endpoint_dir_in(epread))
 		swap(epread, epwrite);
 
+found_dev:
 	ch343 = kzalloc(sizeof(struct ch343), GFP_KERNEL);
 	if (!ch343)
 		return -ENOMEM;
@@ -2384,44 +2426,48 @@ static int ch343_reset_resume(struct usb_interface *intf)
 #endif /* CONFIG_PM */
 
 static const struct usb_device_id ch343_ids[] = {
-	/* ch342 chip */
+	/* CH342 chip */
 	{ USB_DEVICE(0x1a86, 0x55d2) },
-	/* ch343 chip */
+	/* CH343 chip */
 	{ USB_DEVICE(0x1a86, 0x55d3) },
-	/* ch344 chip */
+	/* CH344 chip */
 	{ USB_DEVICE(0x1a86, 0x55d5) },
-	/* ch9143 chip */
+	/* CH9143 chip */
 	{ USB_DEVICE(0x1a86, 0x55d6) },
-	/* ch347t chip mode0*/
+	/* CH347T chip mode0*/
 	{ USB_DEVICE(0x1a86, 0x55da) },
-	/* ch347t chip mode1*/
+	/* CH347T chip mode1*/
 	{ USB_DEVICE_INTERFACE_NUMBER(0x1a86, 0x55db, 0x00) },
-	/* ch347t chip mode3*/
+	/* CH347T chip mode3*/
 	{ USB_DEVICE_INTERFACE_NUMBER(0x1a86, 0x55dd, 0x00) },
-	/* ch347f chip uart0*/
+	/* CH347F chip uart0*/
 	{ USB_DEVICE_INTERFACE_NUMBER(0x1a86, 0x55de, 0x00) },
-	/* ch347f chip uart1*/
+	/* CH347F chip uart1*/
 	{ USB_DEVICE_INTERFACE_NUMBER(0x1a86, 0x55de, 0x02) },
-	/* ch339w chip */
+	/* CH339W chip */
 	{ USB_DEVICE_INTERFACE_NUMBER(0x1a86, 0x55e7, 0x00) },
-	/* ch9101 chip */
+	/* CH9101 chip */
 	{ USB_DEVICE(0x1a86, 0x55d8) },
-	/* ch9102 chip */
+	/* CH9102 chip */
 	{ USB_DEVICE(0x1a86, 0x55d4) },
-	/* ch9103 chip */
+	/* CH9103 chip */
 	{ USB_DEVICE(0x1a86, 0x55d7) },
-	/* ch9104 chip */
+	/* CH9104 chip */
 	{ USB_DEVICE(0x1a86, 0x55df) },
-	/* ch9111l chip mode0*/
+	/* CH9111L chip mode0*/
 	{ USB_DEVICE(0x1a86, 0x55e9) },
-	/* ch9111l chip mode1*/
+	/* CH9111L chip mode1*/
 	{ USB_DEVICE(0x1a86, 0x55ea) },
-	/* ch9114 chip */
+	/* CH9114 chip */
 	{ USB_DEVICE(0x1a86, 0x55e8) },
-	/* ch346c chip mode0/1*/
+	/* CH346C chip mode0/1*/
 	{ USB_DEVICE_INTERFACE_NUMBER(0x1a86, 0x55eb, 0x00) },
-	/* ch346c chip mode2*/
+	/* CH346C chip mode2*/
 	{ USB_DEVICE(0x1a86, 0x55ec) },
+	/* CH9105 chip */
+	{ USB_DEVICE(0x1a86, 0x55ef) },
+	/* CH9433 */
+	{ USB_DEVICE_INTERFACE_NUMBER(0x1a86, 0x5610, 0x01) },
 	{}
 };
 

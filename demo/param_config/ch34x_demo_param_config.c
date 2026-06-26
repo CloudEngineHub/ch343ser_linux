@@ -1,8 +1,7 @@
 /*
- * ch342/ch343/ch344/ch346/ch347/ch9101/ch9102/ch9103/ch9104/ch9344/ch9111/ch9114
+ * CH342/CH343/CH344/CH346/CH347/CH348/CH9344/CH9101/CH9102/CH9103/CH9104/CH9105/CH9111/CH9114
  * parameter configuration application
- *
- * Copyright (C) 2025 Nanjing Qinheng Microelectronics Co., Ltd.
+ * Copyright (C) 2026 Nanjing Qinheng Microelectronics Co., Ltd.
  * Web: http://wch.cn
  * Author: WCH <tech@wch.cn>
  *
@@ -13,113 +12,145 @@
  * Cross-compile with cross-gcc -I /path/to/cross-kernel/include
  *
  * V1.0 - initial version
- * V1.1 - add support of ch346, etc.
+ * v1.1 - add support of CH9105
  */
 
-#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
+#include <stdint.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <assert.h>
+#include <ctype.h>
+#include <stdbool.h>
+
 #include "ch343_lib.h"
 #include "ch9344_lib.h"
-#include "ch34x_parse_cfg.h"
+#include "ch34x_cfg_lib.h"
 
-static char device[64];
-static char profile[64];
+static const char *ch34x_strerr(int ret)
+{
+    switch (-ret) {
+    case CH34X_ERR_USB_TRANS:
+        return "USB transfer failed";
+    case CH34X_ERR_RAW_EEPROM:
+        return "EEPROM read/write value mismatch";
+    case CH34X_ERR_EEPROM_INIT:
+        return "EEPROM is uninitialized, please run 'd' to write default config first";
+    default:
+        return "unknown or system error";
+    }
+}
+
+static void print_usbCfg(usbConfig_t *usbCfg)
+{
+    /* ============ Print chip configuration ============ */
+    printf("\n========================= USB Configuration =========================\n");
+    printf("VendorID                       : %s\n", usbCfg->vendor_id);
+    printf("ProductID                      : %s\n", usbCfg->product_id);
+    printf("MaxPower(mA)                   : %d\n", usbCfg->max_power);
+    printf("PowerMode                      : %s\n", usbCfg->power_mode);
+
+    printf("Remote_Wakeup_Enable           : %s\n", usbCfg->remote_wakeup ? "yes" : "no");
+
+    printf("Serial_String_Enable           : %s\n", usbCfg->serial_string_enable ? "yes" : "no");
+    printf("Product_String_Enable          : %s\n", usbCfg->product_string_enable ? "yes" : "no");
+    printf("Manufacturer_String_Enable     : %s\n", usbCfg->manufacturer_string_enable ? "yes" : "no");
+    if (usbCfg->serial_string_enable)
+        printf("Serial_String                  : %s\n", usbCfg->serial_string);
+    if (usbCfg->product_string_enable)
+        printf("Product_String                 : %s\n", usbCfg->product_string);
+    if (usbCfg->manufacturer_string_enable)
+        printf("Manufacturer_String            : %s\n", usbCfg->manufacturer_string);
+
+    printf("CDC_CTSRTS_FlowControl_Enable  : %s\n", usbCfg->cdc_flow_control ? "yes" : "no");
+    printf("PIN_USE_EEPROM_Enable          : %s\n", usbCfg->pin_eeprom_def_enable ? "yes" : "no");
+    printf("Suspend_Disable                : %s\n", usbCfg->suspend_disable ? "yes" : "no");
+    printf("DTR_MUX_TNOW_SoftSet_Enable    : %s\n", usbCfg->dtr_mux_tnow_softset_enable ? "yes" : "no");
+    printf("UARTx_TNOW_DTR_SETBITS         : 0x%02X\n", usbCfg->dtr_mux_tnow_setbits);
+    printf("=====================================================================\n");
+}
 
 int main(int argc, char *argv[])
 {
-	int ret;
-	char c;
-	CH34X *ch34x;
+    int ret;
+    char c = 0;
+    char device_path[64] = {0};
+    char cfgfile_path[64] = {0};
+    struct ch34xcfg *ch34xcfg;
+    usbConfig_t usbCfg;
 
-	if (argc == 3) {
-		memset(device, 0x00, sizeof(device));
-		memcpy(device, argv[1], strlen(argv[1]));
-		memset(profile, 0x00, sizeof(profile));
-		memcpy(profile, argv[2], strlen(argv[2]));
-	} else {
-		printf("Usage: ./sercfg [device path] [config file path]\n");
-		printf("Exp1: ./sercfg /dev/ch343_iodev0 CONFIG.INI\n");
-		printf("Exp2: ./sercfg /dev/ttyCH343USB0 CONFIG.INI\n");
-		printf("Exp3: ./sercfg /dev/ttyCH9344USB0 CONFIG.INI\n");
-		exit(0);
-	}
+    if (argc == 3) {
+        memset(device_path, 0x00, sizeof(device_path));
+        memcpy(device_path, argv[1], strlen(argv[1]));
+        memset(cfgfile_path, 0x00, sizeof(cfgfile_path));
+        memcpy(cfgfile_path, argv[2], strlen(argv[2]));
+    } else {
+        printf("Usage: ./sercfg [device_path] [config file path]\n");
+        printf("Exp2: ./sercfg /dev/ttyCH343USB0 CONFIG.INI\n");
+        printf("Exp3: ./sercfg /dev/ttyCH9344USB0 CONFIG.INI\n");
+        exit(0);
+    }
 
-	ch34x = ch34x_cfg_alloc(device);
-	if (!ch34x) {
-		printf("ch34x_cfg_alloc error\n");
-		exit(1);
-	}
+    ch34xcfg = ch34x_cfg_alloc(device_path);
+    if (!ch34xcfg) {
+        printf("ch34x_cfg_alloc error\n");
+        exit(1);
+    }
 
-	ret = ch34x_cfg_init(ch34x);
-	if (ret < 0) {
-		printf("ch34x_cfg_init error. ret:%d\n", ret);
-		goto exit;
-	}
+    while (1) {
+        if (c != '\n')
+            printf("\npress g to get usb config, s to set usb config, d to set default config, q to quit this app.\n");
 
-	ret = ch34x_cfg_get(ch34x);
-	if (ret < 0) {
-		if (ret == -7) {
-			printf("The chip configuration is not activated and needs to be written.\n");
-		} else {
-			printf("ch34x_cfg_get error. Error code:%d\n",
-			       ret);
-			goto exit;
-		}
-	}
-	usleep(100 * 1000);
+        if (scanf("%c", &c) != 1)
+            break;
+        if (c == 'q')
+            break;
 
-	while (1) {
-		if (c != '\n')
-			printf("\npress g to get usb config, s to set usb config, r to set default config, q to quit this app.\n");
+        switch (c) {
+        case 'g':
+            ret = ch34x_cfg_get(ch34xcfg);
+            if (ret < 0) {
+                printf("ch34x_cfg_get error, ret:%d (%s)\n", ret, ch34x_strerr(ret));
+                goto exit;
+            }
 
-		scanf("%c", &c);
-		if (c == 'q')
-			break;
-		switch (c) {
-		case 'g':
-			ret = ch34x_cfg_get(ch34x);
-			if (ret < 0) {
-				printf("ch34x_cfg_get error. Error code:%d\n",
-				       ret);
-				goto exit;
-			} else {
-				ret = ch34x_cfg_show(ch34x);
-				if (ret < 0) {
-					printf("ch34x_cfg_show error. Error code:%d\n",
-					       ret);
-					goto exit;
-				}
-			}
-			break;
-		case 's':
-			ret = ch34x_update_cfg(ch34x, profile);
-			if (ret < 0) {
-				printf("ch34x_update_cfg error. Error code:%d\n",
-				       ret);
-				goto exit;
-			}
-			break;
-		case 'r':
-			printf("Writing the default configuration...\n");
-			ret = ch34x_defaultCfg_update(ch34x);
-			if (ret < 0) {
-				printf("ch34x_defaultCfg_update error. Error code:%d\n",
-				       ret);
-				goto exit;
-			}
-			printf("The default configuration is successfully written!\n");
-		default:
-			break;
-		}
-	}
+            ret = ch34x_get_usbCfg(ch34xcfg, &usbCfg);
+            if (ret < 0) {
+                printf("ch34x_get_usbCfg error, ret:%d (%s)\n", ret, ch34x_strerr(ret));
+                goto exit;
+            }
+
+            print_usbCfg(&usbCfg);
+            break;
+        case 's':
+            ret = ch34x_cfg_set(ch34xcfg, cfgfile_path);
+            if (ret < 0) {
+                printf("ch34x_cfg_set error, ret:%d (%s)\n", ret, ch34x_strerr(ret));
+                goto exit;
+            }
+            break;
+        case 'd':
+            ret = ch34x_cfg_setdef(ch34xcfg);
+            if (ret < 0) {
+                printf("ch34x_cfg_setdef error, ret:%d (%s)\n", ret, ch34x_strerr(ret));
+                goto exit;
+            }
+            break;
+        default:
+            break;
+        }
+    }
 
 exit:
-	ret = ch34x_cfg_free(ch34x);
-	if (ret < 0)
-		printf("ch34x_cfg_free error. ret:%d\n", ret);
+    ret = ch34x_cfg_free(ch34xcfg);
+    if (ret < 0)
+        printf("ch34x_cfg_free error, ret:%d\n", ret);
 
-	exit(0);
+    exit(0);
 }
