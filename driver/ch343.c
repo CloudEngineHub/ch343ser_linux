@@ -195,7 +195,7 @@ static int ch343_alloc_minor(struct ch343 *ch343)
 	int minor;
 
 	mutex_lock(&ch343_minors_lock);
-	for (minor = 0; minor < ch343_TTY_MINORS; minor++) {
+	for (minor = 0; minor < CH343_TTY_MINORS; minor++) {
 		if (!ch343_table[minor]) {
 			ch343_table[minor] = ch343;
 			break;

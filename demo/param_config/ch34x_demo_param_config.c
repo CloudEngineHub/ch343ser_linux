@@ -1,5 +1,5 @@
 /*
- * CH342/CH343/CH344/CH346/CH347/CH348/CH9344/CH9101/CH9102/CH9103/CH9104/CH9105/CH9111/CH9114
+ * CH343/CH342/CH344/CH347/CH348/CH9344/CH9101/CH9102/CH9103/CH9104/CH9111/CH9114/CH346
  * parameter configuration application
  * Copyright (C) 2026 Nanjing Qinheng Microelectronics Co., Ltd.
  * Web: http://wch.cn
@@ -12,7 +12,6 @@
  * Cross-compile with cross-gcc -I /path/to/cross-kernel/include
  *
  * V1.0 - initial version
- * v1.1 - add support of CH9105
  */
 
 #include <stdio.h>
@@ -20,6 +19,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
@@ -33,114 +33,101 @@
 #include "ch9344_lib.h"
 #include "ch34x_cfg_lib.h"
 
-static const char *ch34x_strerr(int ret)
+static void print_usb_config(const usbConfig_t *cfg)
 {
-    switch (-ret) {
-    case CH34X_ERR_USB_TRANS:
-        return "USB transfer failed";
-    case CH34X_ERR_RAW_EEPROM:
-        return "EEPROM read/write value mismatch";
-    case CH34X_ERR_EEPROM_INIT:
-        return "EEPROM is uninitialized, please run 'd' to write default config first";
-    default:
-        return "unknown or system error";
-    }
-}
+    printf("\nUSB Configuration:\n");
+    printf("\tVendorId: 0x%04X\n", cfg->vendor_id);
+    printf("\tProductId: 0x%04X\n", cfg->product_id);
 
-static void print_usbCfg(usbConfig_t *usbCfg)
-{
-    /* ============ Print chip configuration ============ */
-    printf("\n========================= USB Configuration =========================\n");
-    printf("VendorID                       : %s\n", usbCfg->vendor_id);
-    printf("ProductID                      : %s\n", usbCfg->product_id);
-    printf("MaxPower(mA)                   : %d\n", usbCfg->max_power);
-    printf("PowerMode                      : %s\n", usbCfg->power_mode);
+    printf("\tMax power: %dmA\n", cfg->max_power);
+    printf("\tPower mode: %s\n", cfg->power_mode);
+    printf("\tRemote wakeup: %s\n", cfg->remote_wakeup ? "Enabled" : "Disabled");
 
-    printf("Remote_Wakeup_Enable           : %s\n", usbCfg->remote_wakeup ? "yes" : "no");
-
-    printf("Serial_String_Enable           : %s\n", usbCfg->serial_string_enable ? "yes" : "no");
-    printf("Product_String_Enable          : %s\n", usbCfg->product_string_enable ? "yes" : "no");
-    printf("Manufacturer_String_Enable     : %s\n", usbCfg->manufacturer_string_enable ? "yes" : "no");
-    if (usbCfg->serial_string_enable)
-        printf("Serial_String                  : %s\n", usbCfg->serial_string);
-    if (usbCfg->product_string_enable)
-        printf("Product_String                 : %s\n", usbCfg->product_string);
-    if (usbCfg->manufacturer_string_enable)
-        printf("Manufacturer_String            : %s\n", usbCfg->manufacturer_string);
-
-    printf("CDC_CTSRTS_FlowControl_Enable  : %s\n", usbCfg->cdc_flow_control ? "yes" : "no");
-    printf("PIN_USE_EEPROM_Enable          : %s\n", usbCfg->pin_eeprom_def_enable ? "yes" : "no");
-    printf("Suspend_Disable                : %s\n", usbCfg->suspend_disable ? "yes" : "no");
-    printf("DTR_MUX_TNOW_SoftSet_Enable    : %s\n", usbCfg->dtr_mux_tnow_softset_enable ? "yes" : "no");
-    printf("UARTx_TNOW_DTR_SETBITS         : 0x%02X\n", usbCfg->dtr_mux_tnow_setbits);
-    printf("=====================================================================\n");
+    printf("\tSerial string: %s [%s]\n", cfg->serial_string_enable ? "Enabled" : "Disabled",
+           cfg->serial_string_enable ? cfg->serial_string : "");
+    printf("\tProduct string: %s [%s]\n", cfg->product_string_enable ? "Enabled" : "Disabled",
+           cfg->product_string_enable ? cfg->product_string : "");
+    printf("\tManufacturer string: %s [%s]\n", cfg->manufacturer_string_enable ? "Enabled" : "Disabled",
+           cfg->manufacturer_string_enable ? cfg->manufacturer_string : "");
 }
 
 int main(int argc, char *argv[])
 {
-    int ret;
-    char c = 0;
+    int ret, i;
+    int opt;
+    char choice;
     char device_path[64] = {0};
     char cfgfile_path[64] = {0};
-    struct ch34xcfg *ch34xcfg;
+    uint8_t eepBuf[0x82 + 1] = {0};
+    CH34xCfg_t *pcfg = NULL;
     usbConfig_t usbCfg;
 
-    if (argc == 3) {
-        memset(device_path, 0x00, sizeof(device_path));
-        memcpy(device_path, argv[1], strlen(argv[1]));
-        memset(cfgfile_path, 0x00, sizeof(cfgfile_path));
-        memcpy(cfgfile_path, argv[2], strlen(argv[2]));
-    } else {
-        printf("Usage: ./sercfg [device_path] [config file path]\n");
-        printf("Exp2: ./sercfg /dev/ttyCH343USB0 CONFIG.INI\n");
-        printf("Exp3: ./sercfg /dev/ttyCH9344USB0 CONFIG.INI\n");
-        exit(0);
+    while ((opt = getopt(argc, argv, "d:c:")) != -1) {
+        switch (opt) {
+        case 'd':
+            strncpy(device_path, optarg, sizeof(device_path) - 1);
+            break;
+        case 'c':
+            strncpy(cfgfile_path, optarg, sizeof(cfgfile_path) - 1);
+            break;
+        default:
+            printf("Usage: ./demo -d [device_path] -c [config file path]\n");
+            printf("Exp1: ./demo -d /dev/ttyCH343USB0 -c CONFIG.INI\n");
+            printf("Exp2: ./demo -d /dev/ttyCH9344USB0 -c CONFIG.INI\n");
+            exit(1);
+        }
     }
 
-    ch34xcfg = ch34x_cfg_alloc(device_path);
-    if (!ch34xcfg) {
+    if (device_path[0] == '\0' || cfgfile_path[0] == '\0') {
+        printf("Usage: ./demo -d [device_path] -c [config file path]\n");
+        printf("Exp1: ./demo -d /dev/ttyCH343USB0 -c CONFIG.INI\n");
+        printf("Exp2: ./demo -d /dev/ttyCH9344USB0 -c CONFIG.INI\n");
+        exit(1);
+    }
+
+    pcfg = ch34x_cfg_alloc(device_path);
+    if (!pcfg) {
         printf("ch34x_cfg_alloc error\n");
         exit(1);
     }
 
+    debug_print_enable(pcfg, true);
+
     while (1) {
-        if (c != '\n')
+        if (choice != '\n')
             printf("\npress g to get usb config, s to set usb config, d to set default config, q to quit this app.\n");
 
-        if (scanf("%c", &c) != 1)
-            break;
-        if (c == 'q')
+        scanf("%c", &choice);
+        if (choice == 'q')
             break;
 
-        switch (c) {
+        switch (choice) {
         case 'g':
-            ret = ch34x_cfg_get(ch34xcfg);
+            ret = ch34x_cfg_get(pcfg, &usbCfg, eepBuf, sizeof(eepBuf));
             if (ret < 0) {
-                printf("ch34x_cfg_get error, ret:%d (%s)\n", ret, ch34x_strerr(ret));
+                printf("ch34x_cfg_get error, ret:%d\n", ret);
                 goto exit;
             }
 
-            ret = ch34x_get_usbCfg(ch34xcfg, &usbCfg);
-            if (ret < 0) {
-                printf("ch34x_get_usbCfg error, ret:%d (%s)\n", ret, ch34x_strerr(ret));
-                goto exit;
-            }
-
-            print_usbCfg(&usbCfg);
+            print_usb_config(&usbCfg);
             break;
         case 's':
-            ret = ch34x_cfg_set(ch34xcfg, cfgfile_path);
+            printf("Setting USB configuration from file:%s...\n", cfgfile_path);
+            ret = ch34x_cfg_set(pcfg, cfgfile_path);
             if (ret < 0) {
-                printf("ch34x_cfg_set error, ret:%d (%s)\n", ret, ch34x_strerr(ret));
+                printf("ch34x_cfg_set error, ret:%d\n", ret);
                 goto exit;
             }
+            printf("USB configuration set successfully from file:%s\n", cfgfile_path);
             break;
         case 'd':
-            ret = ch34x_cfg_setdef(ch34xcfg);
+            printf("Setting default USB configuration...\n");
+            ret = ch34x_cfg_setdef(pcfg);
             if (ret < 0) {
-                printf("ch34x_cfg_setdef error, ret:%d (%s)\n", ret, ch34x_strerr(ret));
+                printf("ch34x_cfg_setdef error, ret:%d\n", ret);
                 goto exit;
             }
+            printf("Default USB configuration set successfully.\n");
             break;
         default:
             break;
@@ -148,9 +135,11 @@ int main(int argc, char *argv[])
     }
 
 exit:
-    ret = ch34x_cfg_free(ch34xcfg);
-    if (ret < 0)
+    ret = ch34x_cfg_free(pcfg);
+    if (ret < 0) {
         printf("ch34x_cfg_free error, ret:%d\n", ret);
+        exit(0);
+    }
 
     exit(0);
 }
